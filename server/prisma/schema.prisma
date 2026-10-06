@@ -1,0 +1,224 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model QueryRecord {
+  id           Int      @id @default(autoincrement())
+  sourceKey    String   @map("source_key")
+  personName   String   @map("person_name")
+  surname      String
+  eventName    String   @map("event_name")
+  eventType    String   @map("event_type")
+  location     String
+  year         Int
+  summary      String   @db.Text
+  keywords     String   @db.Text
+  source       String
+  personId     Int?     @unique @map("person_id")
+  jiguanName   String?  @map("jiguan_name")
+  dynastyName  String?  @map("dynasty_name")
+  lng          Float?
+  lat          Float?
+  isReal       Boolean  @default(false) @map("is_real")
+  visible      Boolean  @default(true)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@index([sourceKey])
+  @@index([eventType])
+  @@index([year])
+  @@index([surname])
+  @@index([isReal])
+  @@map("query_records")
+}
+
+model QueryTimeRange {
+  id        Int      @id @default(autoincrement())
+  sourceKey String   @map("source_key")
+  key       String
+  label     String
+  startYear Int      @map("start_year")
+  endYear   Int      @map("end_year")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([sourceKey])
+  @@map("query_time_ranges")
+}
+
+model DataRecord {
+  id          Int      @id @default(autoincrement())
+  sourceKey   String   @map("source_key")
+  name        String
+  type        String
+  source      String
+  status      String
+  updateTime  String   @map("update_time")
+  description String   @db.Text
+  owner       String
+  coverage    String
+  records     Int
+  size        String
+  tags        String   @db.Text
+  quality     Int      @map("quality")
+  version     String
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([sourceKey])
+  @@index([type])
+  @@index([status])
+  @@map("data_records")
+}
+
+model KnowledgeNode {
+  id          Int      @id @default(autoincrement())
+  sourceKey   String   @map("source_key")
+  nodeId      String   @map("node_id")
+  type        String
+  label       String
+  description String   @db.Text
+  ownerName   String   @map("owner_name")
+  era         String?
+  location    String?
+  relatedClan String?  @map("related_clan")
+  source      String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@unique([sourceKey, nodeId])
+  @@index([sourceKey])
+  @@index([type])
+  @@map("knowledge_nodes")
+}
+
+model KnowledgeEdge {
+  id        Int      @id @default(autoincrement())
+  sourceKey String   @map("source_key")
+  edgeId    String   @map("edge_id")
+  source    String
+  target    String
+  label     String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([sourceKey, edgeId])
+  @@index([sourceKey])
+  @@map("knowledge_edges")
+}
+
+model EvolutionFlow {
+  id        Int      @id @default(autoincrement())
+  sourceKey String   @map("source_key")
+  flowId    String   @map("flow_id")
+  periodKey String   @map("period_key")
+  surname   String
+  fromName  String   @map("from_name")
+  fromLng   Float    @map("from_lng")
+  fromLat   Float    @map("from_lat")
+  toName    String   @map("to_name")
+  toLng     Float    @map("to_lng")
+  toLat     Float    @map("to_lat")
+  intensity Int
+  note      String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([sourceKey, flowId])
+  @@index([sourceKey])
+  @@index([periodKey])
+  @@map("evolution_flows")
+}
+
+model EvolutionPeriod {
+  id        Int      @id @default(autoincrement())
+  sourceKey String   @map("source_key")
+  key       String
+  label     String
+  range     String
+  summary   String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([sourceKey])
+  @@map("evolution_periods")
+}
+
+// 姓氏源流（百家姓 502 姓 · 文献结构化）
+model SurnameOrigin {
+  id                 Int      @id @default(autoincrement())
+  surname            String   @unique
+  originEra          String   @map("origin_era")
+  originPlace        String   @map("origin_place")
+  deriveType         String   @map("derive_type")
+  originStory        String   @db.Text @map("origin_story")
+  originStoryDetail  String   @db.Text @map("origin_story_detail")
+  junwang            String   @db.Text
+  firstAncestor      String?  @map("first_ancestor")
+  firstAncestorTitle String?  @map("first_ancestor_title")
+  majorDistribution  String?  @db.Text @map("major_distribution")
+  hallNames          String?  @db.Text @map("hall_names")
+  sourceRef          String?  @db.Text @map("source_ref")
+  sourceUrl          String?  @db.Text @map("source_url")
+  confidence         Int?     @default(3)
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  @@map("surname_origins")
+}
+
+// 宏观迁徙事件（永嘉南渡、湖广填四川等 38 条）
+model MigrationEvent {
+  id                 Int      @id @default(autoincrement())
+  name               String
+  era                String
+  startYear          Int      @map("start_year")
+  endYear            Int      @map("end_year")
+  cause              String
+  fromRegion         String   @db.Text @map("from_region")
+  fromLng            Float?   @map("from_lng")
+  fromLat            Float?   @map("from_lat")
+  toRegion           String   @db.Text @map("to_region")
+  toLng              Float?   @map("to_lng")
+  toLat              Float?   @map("to_lat")
+  scale              String
+  intensity          Int      @default(5)
+  surnames           String   @db.Text
+  populationEstimate String?  @map("population_estimate")
+  description        String?  @db.Text
+  sourceRef          String?  @db.Text @map("source_ref")
+  confidence         Int?     @default(3)
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  @@index([startYear])
+  @@index([cause])
+  @@map("migration_events")
+}
+
+// 分姓氏迁徙路线点（一条路线 = 同 routeId 的若干点，pointType 1迁出/2迁入，其余为途经分支点）
+model SurnameMigrationPoint {
+  id         Int      @id @default(autoincrement())
+  routeId    Int      @map("route_id")
+  surname    String
+  pointType  Int      @map("point_type")
+  dynasty    String
+  event      String   @db.Text
+  placeOld   String   @db.Text @map("place_old")
+  placeNew   String   @db.Text @map("place_new")
+  lng        Float
+  lat        Float
+  description String?  @db.Text
+  sourceRef  String?  @db.Text @map("source_ref")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([routeId])
+  @@index([surname])
+  @@index([dynasty])
+  @@map("surname_migration_points")
+}
