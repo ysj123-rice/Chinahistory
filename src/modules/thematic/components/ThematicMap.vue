@@ -30,7 +30,7 @@ import {
 } from '@/modules/map/constants'
 import { generateMockPoints } from '@/modules/map/mockPoints'
 import { buildPersonGeoNote, createPersonPopupTemplate, fetchRealPersonPoints, registerSurnameCardAction, type RealPersonPoint } from '@/modules/map/realPoints'
-import { getLayerGroup } from '@/modules/map/layerDefinitions'
+import { getEffectiveLayerGroup } from '@/modules/map/layerDefinitions'
 import { useMapSourceStore } from '@/stores/mapSource'
 import { DEFAULT_THEMATIC_COLOR_KEY, LEGEND_TITLE, THEMATIC_COLORS } from '@/modules/thematic/constants'
 
@@ -41,7 +41,14 @@ const isReady = ref(false)
 
 const activeSourceKey = computed(() => mapSourceStore.activeSourceKey)
 const activeServiceUrl = computed(() => mapSourceStore.activeServiceUrl)
-const layerGroup = computed(() => getLayerGroup(activeSourceKey.value))
+// 无 ArcGIS 在线服务时自动收敛为本地单点/单边，保证图层选择器名实相符
+const layerGroup = computed(() =>
+  getEffectiveLayerGroup(
+    activeSourceKey.value,
+    Boolean(activeServiceUrl.value),
+    mapSourceStore.activeSource?.label,
+  ),
+)
 const activePointLayerId = ref(layerGroup.value.defaultPointLayerId)
 
 const selectedColorKey = ref(DEFAULT_THEMATIC_COLOR_KEY)

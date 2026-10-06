@@ -99,3 +99,36 @@ export const LAYER_GROUPS: Record<MapSourceKey, LayerGroupDefinition> = {
 
 export const getLayerGroup = (key: MapSourceKey) =>
   LAYER_GROUPS[key] ?? LAYER_GROUPS[DEFAULT_LAYER_GROUP_KEY]
+
+// 本地数据模式（无 ArcGIS 在线服务）使用的固定图层 id，避免与真实服务图层编号(0..n)冲突
+export const LOCAL_POINT_LAYER_ID = -1001
+export const LOCAL_BOUNDARY_LAYER_ID = -1002
+
+/**
+ * 按数据来源返回"实际生效"的图层组 —— 图层选择器 UI 与图层创建逻辑的唯一收敛出口：
+ * - 有 ArcGIS 服务地址：返回在线服务目录（每个 id 对应一个真实图层）
+ * - 无服务地址（本地 GeoJSON 边界 + CBDB 人物点）：收敛为单点 + 单边，
+ *   避免把在线服务时代的时间切片目录（如"县级驻点 1330"）暴露给用户造成名实不符
+ */
+export const getEffectiveLayerGroup = (
+  key: MapSourceKey,
+  hasServiceUrl: boolean,
+  sourceLabel?: string,
+): LayerGroupDefinition => {
+  const base = getLayerGroup(key)
+  if (hasServiceUrl) {
+    return base
+  }
+
+  const eraLabel = sourceLabel ?? ''
+  return {
+    pointLayers: [
+      { id: LOCAL_POINT_LAYER_ID, label: '历史人物籍贯（CBDB）', type: 'point' },
+    ],
+    boundaryLayers: [
+      { id: LOCAL_BOUNDARY_LAYER_ID, label: `${eraLabel}疆域边界`, type: 'polygon' },
+    ],
+    defaultPointLayerId: LOCAL_POINT_LAYER_ID,
+    defaultVisibleBoundaryIds: [LOCAL_BOUNDARY_LAYER_ID],
+  }
+}

@@ -50,7 +50,7 @@ import {
   TIANDITU_KEY,
   TIANDITU_SUBDOMAIN_LIST,
 } from '@/modules/map/constants'
-import { getLayerGroup } from '@/modules/map/layerDefinitions'
+import { getEffectiveLayerGroup } from '@/modules/map/layerDefinitions'
 import { generateMockPoints } from '@/modules/map/mockPoints'
 import { buildPersonGeoNote, createPersonPopupTemplate, fetchRealPersonPoints, registerSurnameCardAction, type RealPersonPoint } from '@/modules/map/realPoints'
 import { SURNAME_MOD_BASE, SURNAME_OPTIONS } from '@/modules/map/surnameOptions'
@@ -69,7 +69,14 @@ const activeMode = ref<RenderMode>('scatter')
 const activeSourceKey = computed(() => mapSourceStore.activeSourceKey)
 const activeServiceUrl = computed(() => mapSourceStore.activeServiceUrl)
 const activeGeoJsonPath = computed(() => mapSourceStore.activeGeoJsonPath)
-const layerGroup = computed(() => getLayerGroup(activeSourceKey.value))
+// 无 ArcGIS 在线服务时自动收敛为本地单点/单边，保证图层选择器名实相符
+const layerGroup = computed(() =>
+  getEffectiveLayerGroup(
+    activeSourceKey.value,
+    Boolean(activeServiceUrl.value),
+    mapSourceStore.activeSource?.label,
+  ),
+)
 const pointLayerDefinitions = computed(() => layerGroup.value.pointLayers)
 const boundaryLayerDefinitions = computed(() => layerGroup.value.boundaryLayers)
 const activePointLayerId = ref(layerGroup.value.defaultPointLayerId)
@@ -238,7 +245,7 @@ const createPointLayer = (layerId: number, title: string, isVisible: boolean) =>
       source,
       fields,
       objectIdField: 'ObjectId',
-      title: `${title}（历史人物籍贯）`,
+      title: title.includes('历史人物籍贯') ? title : `${title}（历史人物籍贯）`,
       outFields: ['*'],
       renderer: createScatterRenderer(),
       popupTemplate: createPersonPopupTemplate(),
