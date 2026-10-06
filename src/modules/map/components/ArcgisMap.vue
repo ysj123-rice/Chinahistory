@@ -454,8 +454,13 @@ const initializeMap = async () => {
 
     registerSurnameCardAction(mapView)
 
-    mapView.on('layerview-create-error', () => {
-      statusMessage.value = '图层加载失败，请检查访问权限或图层地址。'
+    mapView.on('layerview-create-error', (event) => {
+      const layerTitle = (event.layer?.title as string | undefined) ?? '未知图层'
+      const reason =
+        (event.error && 'message' in event.error ? String(event.error.message) : '') ||
+        '请检查访问权限或图层地址'
+      console.error('[图层加载失败]', layerTitle, event.error)
+      statusMessage.value = `图层加载失败（${layerTitle}）：${reason}`
     })
 
     resetBoundaryVisibility()
