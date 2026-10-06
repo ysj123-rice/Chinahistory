@@ -60,7 +60,7 @@ import {
   TIANDITU_SUBDOMAIN_LIST,
 } from '@/modules/map/constants'
 import { generateMockPoints } from '@/modules/map/mockPoints'
-import { createPersonPopupTemplate, fetchRealPersonPoints, registerSurnameCardAction, type RealPersonPoint } from '@/modules/map/realPoints'
+import { buildPersonGeoNote, createPersonPopupTemplate, fetchRealPersonPoints, registerSurnameCardAction, type RealPersonPoint } from '@/modules/map/realPoints'
 import { getLayerGroup } from '@/modules/map/layerDefinitions'
 import { useMapSourceStore } from '@/stores/mapSource'
 
@@ -166,6 +166,7 @@ const createPointLayer = (layerId: number): FeatureLayer | null => {
   const points = realPoints.length > 0 ? realPoints : generateMockPoints(400, activeSourceKey.value)
   const graphics = points.map((item) => {
     const isReal = realPoints.length > 0
+    const geoNote = isReal ? buildPersonGeoNote(item as RealPersonPoint) : ''
     const geometry = new Point({
       x: isReal ? (item as RealPersonPoint).lng : (item as { longitude: number }).longitude,
       y: isReal ? (item as RealPersonPoint).lat : (item as { latitude: number }).latitude,
@@ -180,6 +181,7 @@ const createPointLayer = (layerId: number): FeatureLayer | null => {
         location: isReal ? (item as RealPersonPoint).jiguanName ?? '' : '',
         dynasty: isReal ? (item as RealPersonPoint).dynastyName ?? '' : '',
         year: isReal ? (item as RealPersonPoint).year : 0,
+        ...(geoNote ? { geoNote } : {}),
       },
     })
   })
@@ -194,6 +196,7 @@ const createPointLayer = (layerId: number): FeatureLayer | null => {
       new Field({ name: 'location', type: 'string' }),
       new Field({ name: 'dynasty', type: 'string' }),
       new Field({ name: 'year', type: 'integer' }),
+      new Field({ name: 'geoNote', type: 'string' }),
     ],
     objectIdField: 'objectId',
     geometryType: 'point',

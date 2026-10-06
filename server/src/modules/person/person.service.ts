@@ -10,6 +10,12 @@ export type PersonPoint = {
   sourceKey: string
   lng: number
   lat: number
+  chgisSysId: string | null
+  chgisName: string | null
+  chgisBegin: number | null
+  chgisEnd: number | null
+  chgisYearMatched: boolean | null
+  coordSource: string
 }
 
 type ListPointsParams = {
@@ -39,6 +45,12 @@ export const listPersonPoints = async (params: ListPointsParams): Promise<Person
       sourceKey: true,
       lng: true,
       lat: true,
+      chgisSysId: true,
+      chgisName: true,
+      chgisBegin: true,
+      chgisEnd: true,
+      chgisYearMatched: true,
+      coordSource: true,
     },
     orderBy: { year: 'asc' },
   })

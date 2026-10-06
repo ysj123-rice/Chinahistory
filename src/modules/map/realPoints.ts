@@ -18,11 +18,48 @@ export type RealPersonPoint = {
   sourceKey: string
   lng: number
   lat: number
+  chgisSysId?: string | null
+  chgisName?: string | null
+  chgisBegin?: number | null
+  chgisEnd?: number | null
+  chgisYearMatched?: boolean | null
+  coordSource?: 'cbdb' | 'chgis_rescue' | string
 }
 
 type PointsResponse = {
   items: RealPersonPoint[]
   total: number
+}
+
+/** 年份展示：公元前用"前 N 年" */
+const formatYear = (year: number | null | undefined): string => {
+  if (year === null || year === undefined) return '?'
+  return year < 0 ? `前 ${Math.abs(year)} 年` : `${year} 年`
+}
+
+/**
+ * 历史地理校验文案（弹窗用，单一归一化出口）：
+ * - CBDB 坐标 + CHGIS 时代吻合：建制与生年吻合
+ * - CBDB 坐标 + 时代不吻合：坐标为后世治所参考
+ * - CHGIS 救援坐标：CBDB 无坐标，由 CHGIS 实体补全
+ * - 无 CHGIS 记录：空串（弹窗自动省略该行）
+ */
+export const buildPersonGeoNote = (point: RealPersonPoint): string => {
+  if (!point.chgisSysId) {
+    return ''
+  }
+  const period =
+    point.chgisBegin !== null && point.chgisBegin !== undefined &&
+    point.chgisEnd !== null && point.chgisEnd !== undefined
+      ? `${formatYear(point.chgisBegin)}~${formatYear(point.chgisEnd)}`
+      : ''
+  const entity = `${point.chgisName ?? point.jiguanName ?? '该地名'}${period ? `（${period}）` : ''}`
+  if (point.coordSource === 'chgis_rescue') {
+    return `CHGIS 补全坐标：${entity}（CBDB 无坐标）`
+  }
+  return point.chgisYearMatched === false
+    ? `CHGIS 校验：${entity}，生年时该建制未见载，籍贯坐标为后世同名治所参考`
+    : `CHGIS 校验：${entity}，建制存续与生年时代吻合`
 }
 
 // 按 sourceKey 缓存（朝代切换时不重复请求），失败返回空数组以回退示例数据
@@ -50,7 +87,7 @@ export const fetchRealPersonPoints = (sourceKey: string): Promise<RealPersonPoin
 
 export const clearRealPersonPointsCache = () => cache.clear()
 
-// 真实人物点弹窗：标题为人名，字段含姓氏/籍贯/朝代/生年
+// 真实人物点弹窗：标题为人名，字段含姓氏/籍贯/朝代/生年/历史地理校验
 export const createPersonPopupTemplate = () =>
   new PopupTemplate({
     title: '{name}',
@@ -62,6 +99,7 @@ export const createPersonPopupTemplate = () =>
           { fieldName: 'location', label: '籍贯' },
           { fieldName: 'dynasty', label: '朝代' },
           { fieldName: 'year', label: '生年' },
+          { fieldName: 'geoNote', label: '历史地理校验' },
         ],
       },
     ],

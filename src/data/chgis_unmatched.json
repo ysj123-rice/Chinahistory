@@ -35,6 +35,13 @@
     "reason": "not_found"
   },
   {
+    "name": "代州直隶",
+    "dynasty": null,
+    "year": null,
+    "hits": 2,
+    "reason": "not_found"
+  },
+  {
     "name": "代州直隶州直辖地方",
     "dynasty": null,
     "year": null,
@@ -43,6 +50,13 @@
   },
   {
     "name": "沁州直隶州",
+    "dynasty": null,
+    "year": null,
+    "hits": 4,
+    "reason": "not_found"
+  },
+  {
+    "name": "沁州直隶",
     "dynasty": null,
     "year": null,
     "hits": 4,
@@ -71,6 +85,13 @@
   },
   {
     "name": "太仓直隶州",
+    "dynasty": null,
+    "year": null,
+    "hits": 4,
+    "reason": "not_found"
+  },
+  {
+    "name": "太仓直隶",
     "dynasty": null,
     "year": null,
     "hits": 4,
@@ -113,6 +134,13 @@
   },
   {
     "name": "辽西总管府",
+    "dynasty": null,
+    "year": null,
+    "hits": 2,
+    "reason": "not_found"
+  },
+  {
+    "name": "辽西总管",
     "dynasty": null,
     "year": null,
     "hits": 2,
@@ -211,6 +239,13 @@
   },
   {
     "name": "泸州直隶州",
+    "dynasty": null,
+    "year": null,
+    "hits": 2,
+    "reason": "not_found"
+  },
+  {
+    "name": "泸州直隶",
     "dynasty": null,
     "year": null,
     "hits": 2,
@@ -952,6 +987,13 @@
     "reason": "not_found"
   },
   {
+    "name": "西晋末避乱凉",
+    "dynasty": "西晋末",
+    "year": 304,
+    "hits": 2,
+    "reason": "not_found"
+  },
+  {
     "name": "南匈奴内附",
     "dynasty": "西汉至东汉",
     "year": 121,
@@ -1261,6 +1303,13 @@
   },
   {
     "name": "邰阳郡",
+    "dynasty": "上古",
+    "year": null,
+    "hits": 4,
+    "reason": "not_found"
+  },
+  {
+    "name": "邰阳",
     "dynasty": "上古",
     "year": null,
     "hits": 4,
@@ -2135,6 +2184,13 @@
     "reason": "not_found"
   },
   {
+    "name": "颖阳",
+    "dynasty": "战国",
+    "year": -400,
+    "hits": 2,
+    "reason": "not_found"
+  },
+  {
     "name": "靳邑",
     "dynasty": "战国",
     "year": -400,
@@ -2891,6 +2947,13 @@
     "reason": "not_found"
   },
   {
+    "name": "今河南杞",
+    "dynasty": "夏朝",
+    "year": null,
+    "hits": 2,
+    "reason": "not_found"
+  },
+  {
     "name": "廖国",
     "dynasty": "夏朝",
     "year": null,
@@ -3052,6 +3115,13 @@
     "reason": "not_found"
   },
   {
+    "name": "顿邱",
+    "dynasty": "商朝",
+    "year": null,
+    "hits": 2,
+    "reason": "not_found"
+  },
+  {
     "name": "鄫国",
     "dynasty": "夏朝（得姓于春秋）",
     "year": -650,
@@ -3192,6 +3262,13 @@
     "reason": "not_found"
   },
   {
+    "name": "立阙",
+    "dynasty": "春秋",
+    "year": -650,
+    "hits": 2,
+    "reason": "not_found"
+  },
+  {
     "name": "孤竹国",
     "dynasty": "商朝",
     "year": 100,
@@ -3249,6 +3326,13 @@
   },
   {
     "name": "汉代益州",
+    "dynasty": "上古（虞夏）",
+    "year": null,
+    "hits": 2,
+    "reason": "not_found"
+  },
+  {
+    "name": "汉代益",
     "dynasty": "上古（虞夏）",
     "year": null,
     "hits": 2,
@@ -3347,6 +3431,13 @@
   },
   {
     "name": "乐川郡",
+    "dynasty": "东晋十六国",
+    "year": 350,
+    "hits": 2,
+    "reason": "not_found"
+  },
+  {
+    "name": "乐川",
     "dynasty": "东晋十六国",
     "year": 350,
     "hits": 2,
@@ -3542,6 +3633,13 @@
     "reason": "not_found"
   },
   {
+    "name": "东鲁",
+    "dynasty": "西周",
+    "year": -1000,
+    "hits": 6,
+    "reason": "not_found"
+  },
+  {
     "name": "乐正官职",
     "dynasty": "上古（舜）",
     "year": null,
@@ -3577,6 +3675,13 @@
     "reason": "not_found"
   },
   {
+    "name": "颖川",
+    "dynasty": "汉魏",
+    "year": 100,
+    "hits": 2,
+    "reason": "not_found"
+  },
+  {
     "name": "女真加古部",
     "dynasty": "金代",
     "year": 1150,
@@ -3585,6 +3690,13 @@
   },
   {
     "name": "抚城郡",
+    "dynasty": "金代",
+    "year": 1150,
+    "hits": 2,
+    "reason": "not_found"
+  },
+  {
+    "name": "抚城",
     "dynasty": "金代",
     "year": 1150,
     "hits": 2,

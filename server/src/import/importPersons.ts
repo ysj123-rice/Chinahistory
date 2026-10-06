@@ -6,6 +6,7 @@ import type { Prisma } from '@prisma/client'
 import { prisma } from '../prisma/client'
 import { readCsv, toFloat, toInt, type CsvRow } from './csv'
 import { t2s } from './t2s'
+import { resolveChgis } from '../utils/chgis'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const MAIN_PATH = path.resolve(__dirname, '../../data/import/1_person_main.csv')
@@ -79,7 +80,11 @@ export const importPersons = async () => {
 
   const records: Prisma.QueryRecordCreateManyInput[] = []
   const stats: Record<string, number> = {}
-  const skipReasons = { noAddress: 0, noYear: 0, badCoord: 0, unknownDynasty: 0 }
+  const skipReasons = { noAddress: 0, noYear: 0, noCoordinate: 0, unknownDynasty: 0 }
+  // CHGIS 校验统计
+  let chgisMatched = 0
+  let chgisYearMatched = 0
+  let rescuedByChgis = 0
 
   for (const [personIdKey, main] of mainMap) {
     const personId = toInt(personIdKey)
@@ -100,16 +105,36 @@ export const importPersons = async () => {
 
     const lng = toFloat(addr.lng)
     const lat = toFloat(addr.lat)
-    if (lng === null || lat === null || !Number.isFinite(lng) || !Number.isFinite(lat)) {
-      skipReasons.badCoord += 1
-      continue
-    }
+    const hasCbdbCoord =
+      lng !== null && lat !== null && Number.isFinite(lng) && Number.isFinite(lat)
 
     const personName = t2s(main.personName)
     const surname = t2s(main.surname)
     const dynastyName = t2s(main.dynasty_name)
     const jiguanName = t2s(addr.jiguanName)
     const sourceKey = resolveSourceKey(dynastyName, year)
+
+    // CHGIS 时空校验：籍贯（简体）+ 生年精确年份 -> 唯一历史空间实体
+    const chgis = resolveChgis(jiguanName, year)
+    if (chgis) {
+      chgisMatched += 1
+      if (chgis.yearMatched) {
+        chgisYearMatched += 1
+      }
+    }
+    const hasChgisCoord = chgis !== null && chgis.lng !== null && chgis.lat !== null
+
+    // 坐标策略：CBDB 原始坐标优先；CBDB 缺坐标时用 CHGIS 实体坐标救援（明确标注来源）
+    if (!hasCbdbCoord && !hasChgisCoord) {
+      skipReasons.noCoordinate += 1
+      continue
+    }
+    const coordSource = hasCbdbCoord ? 'cbdb' : 'chgis_rescue'
+    if (coordSource === 'chgis_rescue') {
+      rescuedByChgis += 1
+    }
+    const finalLng = hasCbdbCoord ? lng : (chgis?.lng as number)
+    const finalLat = hasCbdbCoord ? lat : (chgis?.lat as number)
 
     if (sourceKey === 'other') {
       skipReasons.unknownDynasty += 1
@@ -129,8 +154,14 @@ export const importPersons = async () => {
       personId,
       jiguanName,
       dynastyName,
-      lng,
-      lat,
+      lng: finalLng,
+      lat: finalLat,
+      chgisSysId: chgis?.sysId ?? null,
+      chgisName: chgis?.matchedName ?? chgis?.name ?? null,
+      chgisBegin: chgis?.begin ?? null,
+      chgisEnd: chgis?.end ?? null,
+      chgisYearMatched: chgis ? chgis.yearMatched : null,
+      coordSource,
       isReal: true,
       visible: !HIDDEN_SOURCE_KEYS.has(sourceKey),
     })
@@ -149,5 +180,6 @@ export const importPersons = async () => {
     hidden: records.filter((r) => r.visible === false).length,
     duplicateAddr,
     skipReasons,
+    chgis: { matched: chgisMatched, yearMatched: chgisYearMatched, rescued: rescuedByChgis },
   }
 }

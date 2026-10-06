@@ -24,6 +24,14 @@ model QueryRecord {
   dynastyName  String?  @map("dynasty_name")
   lng          Float?
   lat          Float?
+  // CHGIS 历史地名库时空校验（导入时按 籍贯+生年 解析）
+  chgisSysId       String? @map("chgis_sys_id")
+  chgisName        String? @map("chgis_name")
+  chgisBegin       Int?    @map("chgis_begin")
+  chgisEnd         Int?    @map("chgis_end")
+  chgisYearMatched Boolean? @map("chgis_year_matched")
+  // 坐标来源：cbdb = CBDB 原始坐标；chgis_rescue = CBDB 缺坐标，采用 CHGIS 实体坐标
+  coordSource  String   @default("cbdb") @map("coord_source")
   isReal       Boolean  @default(false) @map("is_real")
   visible      Boolean  @default(true)
   createdAt    DateTime @default(now()) @map("created_at")

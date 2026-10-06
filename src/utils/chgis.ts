@@ -83,6 +83,8 @@ const TYPE_RANK: Record<string, number> = {
 
 /** 复合地名修饰前缀（与构建脚本 build-gazetteer.mjs 保持一致） */
 const PLACE_PREFIXES = ['王城', '古', '故', '旧']
+/** 行政后缀回退（CBDB 籍贯常带"郡/府/州"，CHGIS 或仅存无后缀名） */
+const PLACE_SUFFIXES = ['行省', '郡', '府', '州', '县', '路', '道', '省', '军', '监']
 
 const ENTRIES = ((gazetteer as { entries?: Record<string, GazetteerEntry> })?.entries ??
   {}) as Record<string, GazetteerEntry>
@@ -137,8 +139,13 @@ export function resolve(
 
   const year = toYear(time)
 
-  // 候选查询名：原名 + 前缀剥离名（去重、保序）
+  // 候选查询名（去重、保序）：原名 -> 行政后缀剥离 -> 修饰前缀剥离
   const lookupNames = [cleanName]
+  for (const suffix of PLACE_SUFFIXES) {
+    if (cleanName.endsWith(suffix) && cleanName.length - suffix.length >= 2) {
+      lookupNames.push(cleanName.slice(0, cleanName.length - suffix.length))
+    }
+  }
   for (const prefix of PLACE_PREFIXES) {
     if (cleanName.startsWith(prefix) && cleanName.length - prefix.length >= 2) {
       lookupNames.push(cleanName.slice(prefix.length))
@@ -150,6 +157,20 @@ export function resolve(
     let candidates = hit?.candidates ?? []
     // 退而求其次：不带年份的通用记录
     if (!candidates.length) candidates = ENTRIES[`${lookupName}@-`]?.candidates ?? []
+    // 最后：汇总该地名在所有年份键下的候选（构建时各年份键存的是同名全量候选，按 sysId 去重）
+    if (!candidates.length) {
+      const prefix = `${lookupName}@`
+      const pooled = new Map<string, GazetteerEntry['candidates'][number]>()
+      for (const [key, entry] of Object.entries(ENTRIES)) {
+        if (key.startsWith(prefix)) {
+          for (const c of entry.candidates) {
+            const id = c.sysId ?? `${c.name}@${c.lng},${c.lat}`
+            if (!pooled.has(id)) pooled.set(id, c)
+          }
+        }
+      }
+      candidates = [...pooled.values()]
+    }
     if (!candidates.length) continue
 
     if (opts.featureType) {

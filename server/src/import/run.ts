@@ -28,6 +28,9 @@ const main = async () => {
     console.log(`        - ${key}: ${count}`)
   }
   console.log('      跳过：', persons.skipReasons, `；一人多籍贯地址 ${persons.duplicateAddr} 条取首条`)
+  console.log(
+    `      CHGIS 校验：解析命中 ${persons.chgis.matched}（时代吻合 ${persons.chgis.yearMatched}），无坐标救援补入 ${persons.chgis.rescued} 位`,
+  )
 
   console.log('[5/5] 重建知识图谱（真实数据）...')
   await importKnowledgeGraph()

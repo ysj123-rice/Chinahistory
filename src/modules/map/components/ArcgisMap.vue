@@ -52,7 +52,7 @@ import {
 } from '@/modules/map/constants'
 import { getLayerGroup } from '@/modules/map/layerDefinitions'
 import { generateMockPoints } from '@/modules/map/mockPoints'
-import { createPersonPopupTemplate, fetchRealPersonPoints, registerSurnameCardAction, type RealPersonPoint } from '@/modules/map/realPoints'
+import { buildPersonGeoNote, createPersonPopupTemplate, fetchRealPersonPoints, registerSurnameCardAction, type RealPersonPoint } from '@/modules/map/realPoints'
 import { SURNAME_MOD_BASE, SURNAME_OPTIONS } from '@/modules/map/surnameOptions'
 import { useMapSourceStore } from '@/stores/mapSource'
 
@@ -213,12 +213,14 @@ const createPointLayer = (layerId: number, title: string, isVisible: boolean) =>
     new Field({ name: 'location', type: 'string' }),
     new Field({ name: 'dynasty', type: 'string' }),
     new Field({ name: 'year', type: 'integer' }),
+    new Field({ name: 'geoNote', type: 'string' }),
   ]
 
   // 优先使用 CBDB 真实人物籍贯点；无数据（接口失败或该朝代无人物）时回退示例点
   if (realPoints.length > 0) {
-    const source = realPoints.map((p) =>
-      new Graphic({
+    const source = realPoints.map((p) => {
+      const geoNote = buildPersonGeoNote(p)
+      return new Graphic({
         geometry: new Point({ longitude: p.lng, latitude: p.lat }),
         attributes: {
           ObjectId: p.id,
@@ -227,9 +229,10 @@ const createPointLayer = (layerId: number, title: string, isVisible: boolean) =>
           location: p.jiguanName ?? '',
           dynasty: p.dynastyName ?? '',
           year: p.year,
+          ...(geoNote ? { geoNote } : {}),
         },
-      }),
-    )
+      })
+    })
 
     const layer = new FeatureLayer({
       source,

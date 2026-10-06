@@ -83,13 +83,23 @@ function eraToYear(text) {
  * - 枚举括号"江南（建康；会稽）" -> 括号内外都作为候选地名
  * - 多值拆分："天水郡；涿郡" -> ["天水郡", "涿郡"]
  * - 复合地名前缀剥离："王城洛邑" -> 额外候选 "洛邑"
+ * - 行政后缀剥离（回退）："吴兴郡" -> "吴兴"、"苏州府" -> "苏州"
  * - 过滤过短/过长/纯数字；剥离后长度仍需 >= 2（避免"新安"->"安"误伤）
  */
 const PLACE_PREFIXES = ['王城', '古', '故', '旧']
+const PLACE_SUFFIXES = ['行省', '郡', '府', '州', '县', '路', '道', '省', '军', '监']
 function stripPrefix(name) {
   for (const p of PLACE_PREFIXES) {
     if (name.startsWith(p) && name.length - p.length >= 2) {
       return name.slice(p.length)
+    }
+  }
+  return null
+}
+function stripSuffix(name) {
+  for (const s of PLACE_SUFFIXES) {
+    if (name.endsWith(s) && name.length - s.length >= 2) {
+      return name.slice(0, name.length - s.length)
     }
   }
   return null
@@ -110,8 +120,10 @@ function extractNames(raw) {
   // 复合地名补充剥离候选（去重）
   const out = new Set(base)
   for (const name of base) {
-    const stripped = stripPrefix(name)
-    if (stripped) out.add(stripped)
+    const pre = stripPrefix(name)
+    if (pre) out.add(pre)
+    const suf = stripSuffix(name)
+    if (suf) out.add(suf)
   }
   return [...out]
 }
