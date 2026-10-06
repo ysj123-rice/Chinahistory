@@ -15,3 +15,10 @@ dist/
 # 系统文件
 Thumbs.db
 .DS_Store
+
+# CHGIS 原始模板包（已内化为 scripts/ + src/utils/chgis.ts，无需版本化）
+chgis_pkg/
+chgis_pkg.zip
+
+# IDE 配置
+.idea/

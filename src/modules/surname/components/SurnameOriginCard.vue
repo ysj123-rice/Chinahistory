@@ -13,10 +13,23 @@ import {
   buildTiandituTileUrl,
   TIANDITU_SUBDOMAIN_LIST,
 } from '@/modules/map/constants'
+import { resolve, toPoint } from '@/utils/chgis'
 import { fetchSurnameOrigin, fetchSurnameRouteGroups, type SurnameOrigin, type SurnameRouteGroup } from '../api'
 import { closeSurnameCard, surnameCardState } from '../store'
 
-type MatchedPoint = { lng: number; lat: number; label: string }
+type MatchedPoint = {
+  lng: number
+  lat: number
+  label: string
+  /** 坐标来源：chgis = 历史地名库时空解析；route = 迁徙路线记载地名匹配 */
+  source: 'chgis' | 'route'
+  sysId?: string | null
+  period?: string | null
+  /** CHGIS 实体存续区间是否覆盖得姓时代（false = 仅后世治所位置参考） */
+  yearMatched?: boolean
+  /** 前缀剥离回退实际命中的地名 */
+  matchedName?: string
+}
 
 const isLoading = ref(false)
 const origin = ref<SurnameOrigin | null>(null)
@@ -41,15 +54,50 @@ const fieldGroups = () => {
   ].filter((item) => item.value)
 }
 
-/** 起源地与迁徙路线点做地名互包含匹配（均为真实采集地名，不做推算） */
-const matchOriginPoints = (originPlace: string, groups: SurnameRouteGroup[]): MatchedPoint[] => {
+/**
+ * 起源地落图坐标解析（两级证据，均不做坐标推算）：
+ * 1. CHGIS 历史地名库：originPlace + originEra -> 唯一空间实体（sysId + 坐标 + 存续年份）
+ * 2. 迁徙路线记载：originPlace 与该姓氏真实路线地名互包含匹配（原有逻辑保留）
+ * 查不到即返回空，前端如实显示"未落图"。
+ */
+const matchOriginPoints = (
+  originPlace: string,
+  originEra: string,
+  groups: SurnameRouteGroup[],
+): MatchedPoint[] => {
   if (!originPlace) {
     return []
   }
-  const normalize = (text: string) => text.replace(/\s+/g, '')
-  const target = normalize(originPlace)
   const seen = new Set<string>()
   const points: MatchedPoint[] = []
+  const pushPoint = (point: MatchedPoint) => {
+    const key = `${point.lng.toFixed(4)},${point.lat.toFixed(4)}`
+    if (seen.has(key)) {
+      return
+    }
+    seen.add(key)
+    points.push(point)
+  }
+
+  // 第一级：CHGIS 时空解析（resolve 内部已清洗"赵城（今山西洪洞）"括号注记）
+  const entity = resolve(originPlace, originEra)
+  const chgisPoint = toPoint(entity)
+  if (chgisPoint && entity) {
+    pushPoint({
+      lng: chgisPoint.lng,
+      lat: chgisPoint.lat,
+      label: chgisPoint.label ?? originPlace,
+      source: 'chgis',
+      sysId: chgisPoint.sysId,
+      period: chgisPoint.period,
+      yearMatched: entity.yearMatched,
+      matchedName: entity.matchedName,
+    })
+  }
+
+  // 第二级：迁徙路线记载地名互包含匹配（均为真实采集地名）
+  const normalize = (text: string) => text.replace(/\s+/g, '')
+  const target = normalize(originPlace)
   groups.forEach((group) => {
     group.points.forEach((point) => {
       const oldName = normalize(point.placeOld ?? '')
@@ -60,12 +108,12 @@ const matchOriginPoints = (originPlace: string, groups: SurnameRouteGroup[]): Ma
       if (!hit) {
         return
       }
-      const key = `${point.lng},${point.lat}`
-      if (seen.has(key)) {
-        return
-      }
-      seen.add(key)
-      points.push({ lng: point.lng, lat: point.lat, label: point.placeOld || point.placeNew })
+      pushPoint({
+        lng: point.lng,
+        lat: point.lat,
+        label: point.placeOld || point.placeNew,
+        source: 'route',
+      })
     })
   })
   return points
@@ -88,9 +136,19 @@ const initMiniMap = async () => {
     (point) =>
       new Graphic({
         geometry: new Point({ longitude: point.lng, latitude: point.lat }),
+        // 证据分级着色：
+        // CHGIS 且时代吻合 = 实心青蓝；CHGIS 仅后世坐标参考 = 半透明青蓝；路线记载 = 橙红
         symbol: new SimpleMarkerSymbol({
-          color: [225, 106, 74],
-          outline: { color: [255, 255, 255], width: 1.5 },
+          color:
+            point.source === 'chgis'
+              ? point.yearMatched === false
+                ? [31, 136, 167, 0.25]
+                : [31, 136, 167]
+              : [225, 106, 74],
+          outline: {
+            color: point.source === 'chgis' ? [31, 136, 167] : [255, 255, 255],
+            width: 1.5,
+          },
           size: 12,
         }),
         attributes: { label: point.label },
@@ -138,7 +196,11 @@ const loadCard = async (surname: string) => {
       fetchSurnameRouteGroups(surname),
     ])
     origin.value = originData
-    matchedPoints.value = matchOriginPoints(originData?.originPlace ?? '', groups)
+    matchedPoints.value = matchOriginPoints(
+      originData?.originPlace ?? '',
+      originData?.originEra ?? '',
+      groups,
+    )
     await nextTick()
     void initMiniMap()
   } finally {
@@ -197,9 +259,20 @@ onBeforeUnmount(destroyMiniMap)
 
               <section v-if="matchedPoints.length > 0" class="map-block">
                 <h4>起源地落图</h4>
-                <p class="map-note">
-                  依据迁徙路线记载地名「{{ matchedPoints.map((p) => p.label).join('、') }}」匹配定位
-                </p>
+                <template v-for="point in matchedPoints" :key="`${point.lng},${point.lat}`">
+                  <p v-if="point.source === 'chgis' && point.yearMatched !== false" class="map-note">
+                    <span class="note-dot chgis"></span>
+                    CHGIS 历史地名库定位：{{ point.matchedName ?? point.label }}（{{ origin?.originEra }}，建制存续 {{ point.period }}<template v-if="point.sysId">，sys_id: {{ point.sysId }}</template>）
+                  </p>
+                  <p v-else-if="point.source === 'chgis'" class="map-note">
+                    <span class="note-dot chgis-reference"></span>
+                    CHGIS 位置参考：{{ origin?.originEra }}建制未见记载，采用后世「{{ point.matchedName ?? point.label }}」（{{ point.period }}）治所坐标<template v-if="point.sysId">（sys_id: {{ point.sysId }}）</template>，非同代实体
+                  </p>
+                  <p v-else class="map-note">
+                    <span class="note-dot route"></span>
+                    依据迁徙路线记载地名「{{ point.label }}」匹配定位
+                  </p>
+                </template>
                 <div ref="miniMapRef" class="mini-map"></div>
               </section>
               <p v-else class="map-note empty">起源地暂无可匹配的坐标记载，未落图</p>
@@ -347,6 +420,29 @@ onBeforeUnmount(destroyMiniMap)
   margin: 0 0 8px;
   font-size: 12px;
   color: var(--text-muted, #5a728c);
+}
+
+.note-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: 1px;
+}
+
+.note-dot.chgis {
+  background: #1f88a7;
+}
+
+.note-dot.chgis-reference {
+  background: rgba(31, 136, 167, 0.25);
+  border: 1px solid #1f88a7;
+  box-sizing: border-box;
+}
+
+.note-dot.route {
+  background: #e16a4a;
 }
 
 .map-note.empty {
