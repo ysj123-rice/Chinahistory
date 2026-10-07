@@ -65,23 +65,30 @@ export const buildPersonGeoNote = (point: RealPersonPoint): string => {
 // 按 sourceKey 缓存（朝代切换时不重复请求），失败返回空数组以回退示例数据
 const cache = new Map<string, Promise<RealPersonPoint[]>>()
 
-export const fetchRealPersonPoints = (sourceKey: string): Promise<RealPersonPoint[]> => {
-  if (!sourceKey) {
-    return Promise.resolve([])
-  }
-  const cached = cache.get(sourceKey)
+/** 全量人物点缓存键：时空轴模式一次装载所有朝代，按生年在前端做时间过滤 */
+export const ALL_PERSON_POINTS_KEY = '__all__'
+
+/**
+ * 拉取真实人物籍贯点。
+ * - 传 sourceKey：仅该朝代（兼容旧的按朝代下拉模式）
+ * - 传空：返回跨朝代全量点（时间轴模式，后端不传 source_key 即不过滤）
+ */
+export const fetchRealPersonPoints = (sourceKey?: string | null): Promise<RealPersonPoint[]> => {
+  const cacheKey = sourceKey || ALL_PERSON_POINTS_KEY
+  const cached = cache.get(cacheKey)
   if (cached) {
     return cached
   }
 
-  const promise = apiGet<PointsResponse>(API_ENDPOINTS.personPoints, { source_key: sourceKey })
+  const params = sourceKey ? { source_key: sourceKey } : {}
+  const promise = apiGet<PointsResponse>(API_ENDPOINTS.personPoints, params)
     .then((data) => data.items ?? [])
     .catch((error) => {
       console.warn('[真实人物点] 加载失败，将回退示例数据', error)
       return []
     })
 
-  cache.set(sourceKey, promise)
+  cache.set(cacheKey, promise)
   return promise
 }
 

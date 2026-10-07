@@ -20,5 +20,8 @@ Thumbs.db
 chgis_pkg/
 chgis_pkg.zip
 
+# CHGIS V6 全量原始数据（168MB，本地保留；渲染资产由 pnpm boundaries:build 从它再生成）
+古代地图/
+
 # IDE 配置
 .idea/
